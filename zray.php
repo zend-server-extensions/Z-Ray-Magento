@@ -1,0 +1,203 @@
+<?php
+
+class Magento {
+	
+	/**
+	 * @var array
+	 */
+	private $eventTargets = array();
+	private $requests = array();
+	private $zray = null;
+    
+    public function setZRay($zray) {
+        $this->zray = $zray;
+    }
+    
+    /**
+     * @return \ZRayExtension
+     */
+    public function getZRay() {
+        return $this->zray;
+    }
+    
+	/**
+	 * @param array $context
+	 * @param array $storage
+	 */
+	public function mageAppExit($context, &$storage){
+        $this->requests = (array)Mage::app()->getRequest();
+        // Now that we got our requests, we can untrace 'Mage::app' (for performance reasons)
+        $this->getZRay()->untraceFunction("Mage::app");
+	}
+	
+	/**
+	 * @param array $context
+	 * @param array $storage
+	 */
+	public function mageRunExit($context, &$storage){
+		
+		//Observers / Events
+		$storage['observers'] = array();
+		$this->storeObservers($storage['observers']);
+		
+		//Requests
+		$finalRequests = (array)Mage::app()->getRequest();
+		
+		foreach($this->requests as $key=>$value) {
+			$finalVal = !array_key_exists($key,$finalRequests) ? '[NULL]' : $finalRequests[$key];
+			$storage['request'][] = array('property' => $key, 
+                                          'Init Value' => is_array($value) ? print_r($value,true) : $value, 'Final Value'=>is_array($finalVal) ? print_r($finalVal,true) : $finalVal);
+		}
+
+		//Handles
+		$storage['handles'] = array_map(function($handle){
+			return array('name' => $handle);
+		}, Mage::app()->getLayout()->getUpdate()->getHandles());
+		
+		//Blocks
+		$storage['blocks'][] = $this->getBlocks($this->getRootBlock());
+		
+		//Overview
+		$storage['overview'] = $this->getOverview();
+	}
+	
+	
+	private function getOverview(){
+		$_website = Mage::app()->getWebsite();
+		$_store = Mage::app()->getStore();
+        $cacheMethod = explode('_',get_class(Mage::app()->getCache()->getBackend()));
+        $cacheMethod = end($cacheMethod);
+		
+		$overview = array(
+			'Website ID'=>$_website->getId(),
+			'Website Name'=>$_website->getName(),
+			'Store Id'=>$_store->getGroupId(),
+			'Store Name'=>$_store->getGroup()->getName(),
+			'Store View Id'=>$_store->getId(),
+			'Store View Code'=>$_store->getCode(),
+			'Store View Name'=>$_store->getName(),
+			'Cache Method'=>$cacheMethod
+		);
+		$arr = array();
+		foreach($overview as $k => $v){
+			$arr[]=array('Key'=>$k,'Value'=>$v);
+		}
+		return $arr;
+	}
+	
+	/**
+	 * @param array $context
+	 */
+	public function magDispatchEvent($context) {
+		/// collect event targets for events collector
+		$event = $context['functionArgs'][0];
+		$args = $context['functionArgs'][1];
+		$key = array_shift(array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args)));
+		$this->eventTargets[$event] = $args[$key];
+	}
+	
+	/**
+	 * @param array $context
+	 * @param array $storage
+	 */
+	public function appCallObserverMethod($context, & $storage){
+
+		$method = $context['functionArgs'][1];
+		$observerData = $context['functionArgs'][2]->getData();
+		$eventArgs = $observerData['event']->getData();
+		$event = $observerData['event']->getName();
+		$object = get_class($context['functionArgs'][0]);
+
+		//Events
+		$storage['events'][] = array('event' => $event, 'class' => $object, 'method' => $method,
+				'duration' => $context['durationInclusive'], 'target' => get_class($this->eventTargets[$event]));
+	}
+	
+	/**
+	 * @param array $storage
+	 */
+	private function storeObservers(& $storage) {
+		foreach (array('global', 'adminhtml', 'frontend') as $eventArea) {
+			$eventConfig = $this->getEventAreaEventConfigs($eventArea);
+			if (! ($eventConfig instanceof Mage_Core_Model_Config_Element)) {
+				continue;
+			}
+			
+			$events = $eventConfig->children();
+			$this->processEventObservers($events, $eventArea, $storage);
+		}
+	}
+	
+	/**
+	 * @param string $eventArea
+	 * @return Mage_Core_Model_Config_Element|null
+	 */
+	private function getEventAreaEventConfigs($eventArea) {
+		return Mage::app()->getConfig()->getNode(sprintf('%s/events', $eventArea));
+	}
+	
+	/**
+	 * @param array $areaEvents
+	 * @param string $eventArea
+	 * @param array $storage
+	 */
+	private function processEventObservers($areaEvents, $eventArea, & $storage) {
+		foreach ($areaEvents as $eventName => $event) {
+			foreach ($event->observers->children() as $observerName => $observer) {
+				$observerData = array(
+						'area' => $eventArea,
+						'event' => $eventName,
+						'name' => $observerName,
+                        'type' => (string)$observer->type ? (string)$observer->type : 'singleton',
+						'class' => Mage::app()->getConfig()->getModelClassName($observer->class),
+						'method' => (string)$observer->method
+				);
+				$storage[] = $observerData;
+			}
+		}
+	}
+	
+    private function getRootBlock()
+    {
+        return Mage::app()->getLayout()->getBlock('root');     
+    }
+
+    private function getBlocks($block)
+    {
+		$blocks = array();
+		if($block && $block->getChild()){
+			$sortedChildren = $block->getSortedChildren();
+			foreach ($sortedChildren as $childname) {
+				$child = $block->getChild($childname);
+                if (!$child){
+                  continue;
+                }
+				$hasChildren =  $child->getChild() ? true : false;
+				if($hasChildren){
+					$blocks[$child->getNameInLayout()]=$this->getBlocks($child);
+				}else{
+					$blocks[$child->getNameInLayout()]=array(
+						'Class'=>get_class($child),
+						'Template'=>$child->getTemplateFile() ? $child->getTemplateFile() : $child->getTemplate()
+						);
+				}
+			}
+		}
+		return $blocks;
+    }
+    
+}
+
+
+$zrayMagento = new Magento();
+$zrayMagento->setZRay(new ZRayExtension('magento'));
+
+$zrayMagento->getZRay()->setMetadata(array(
+    'logo' => __DIR__ . DIRECTORY_SEPARATOR . 'logo.png',
+));
+
+$zrayMagento->getZRay()->setEnabledAfter('Mage::run');
+$zrayMagento->getZRay()->traceFunction('Mage::app', function(){}, array($zrayMagento, 'mageAppExit'));
+$zrayMagento->getZRay()->traceFunction('Mage::run', function(){}, array($zrayMagento, 'mageRunExit'));
+$zrayMagento->getZRay()->traceFunction('Mage_Core_Model_App::_callObserverMethod', function(){}, array($zrayMagento, 'appCallObserverMethod'));
+$zrayMagento->getZRay()->traceFunction('Mage::dispatchEvent', array($zrayMagento, 'magDispatchEvent'), function(){});	
