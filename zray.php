@@ -88,7 +88,7 @@ class Magento {
 	/**
 	 * @param array $context
 	 */
-	public function magDispatchEvent($context) {
+	public function mageDispatchEvent($context) {
 		/// collect event targets for events collector
 		$event = $context['functionArgs'][0];
 		$args = $context['functionArgs'][1];
