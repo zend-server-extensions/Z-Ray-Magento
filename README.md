@@ -9,7 +9,7 @@ Installation
 
 Create a directory named as desired, and add the contents of this repo within.
 
-Example:
+Example: (assuming default install directory for Zend Server)
 
 /usr/local/zend/var/zray/extensions/{extension-name}/zray.php
 /usr/local/zend/var/zray/extensions/{extension-name}/logo.png
