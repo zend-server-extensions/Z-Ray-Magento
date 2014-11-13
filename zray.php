@@ -69,15 +69,15 @@ class Magento {
         $cacheMethod = end($cacheMethod);
 		
 		$overview = array(
-			'Website ID'=>$_website->getId(),
-			'Website Name'=>$_website->getName(),
-			'Store Id'=>$_store->getGroupId(),
-			'Store Name'=>$_store->getGroup()->getName(),
-			'Store View Id'=>$_store->getId(),
-			'Store View Code'=>$_store->getCode(),
-			'Store View Name'=>$_store->getName(),
-			'Cache Method'=>$cacheMethod
-		);
+	            'Website ID'      => (method_exists($_website,'getId')) ? $_website->getId() : '',
+	            'Website Name'    => (method_exists($_website,'getName')) ? $_website->getName() : '',
+	            'Store Id'        => (method_exists($_store,'getGroupId')) ? $_store->getGroupId() : '',
+	            'Store Name'      => (method_exists($_store,'getGroup') && method_exists($_store->getGroup(),'getName')) ? $_store->getGroup()->getName() : '',
+	            'Store View Id'   => (method_exists($_store,'getId')) ? $_store->getId() : '',
+	            'Store View Code' => (method_exists($_store,'getCode')) ? $_store->getCode() : '',
+	            'Store View Name' => (method_exists($_store,'getName')) ? $_store->getName() : '',
+	            'Cache Method'    => $cacheMethod
+	        );
 		$arr = array();
 		foreach($overview as $k => $v){
 			$arr[]=array('Key'=>$k,'Value'=>$v);
