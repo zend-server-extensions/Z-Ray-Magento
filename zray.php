@@ -95,7 +95,8 @@ class Magento {
 		/// collect event targets for events collector
 		$event = $context['functionArgs'][0];
 		$args = $context['functionArgs'][1];
-		$key = array_shift(array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args)));
+		$intersection = array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args));
+		$key = array_shift($intersection);
 		$this->eventTargets[$event] = $args[$key];
 	}
 	
