@@ -94,10 +94,12 @@ class Magento {
 	public function mageDispatchEvent($context) {
 		/// collect event targets for events collector
 		$event = $context['functionArgs'][0];
-		$args = $context['functionArgs'][1];
+		$args = isset($context['functionArgs'][1]) ? $context['functionArgs'][1] : array();
 		$intersection = array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args));
 		$key = array_shift($intersection);
-		$this->eventTargets[$event] = $args[$key];
+		if(isset($args[$key])){
+			$this->eventTargets[$event] = $args[$key];
+		}
 	}
 	
 	/**
@@ -113,8 +115,14 @@ class Magento {
 		$object = get_class($context['functionArgs'][0]);
 
 		//Events
-		$storage['events'][] = array('event' => $event, 'class' => $object, 'method' => $method,
-				'duration' => $context['durationInclusive'], 'target' => get_class($this->eventTargets[$event]));
+		if(isset($this->eventTargets[$event])){
+			$storage['events'][] = array('event' => $event,
+										'class' => $object,
+										'method' => $method,
+										'duration' => $context['durationInclusive'], 
+										'target' => get_class($this->eventTargets[$event])
+										);
+		}
 	}
 	
 	/**
