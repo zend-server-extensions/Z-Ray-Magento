@@ -1,7 +1,7 @@
 <?php
 /*********************************
 	Magento Z-Ray Extension
-	Version: 1.00
+	Version: 1.02
 **********************************/
 class Magento {
 	
