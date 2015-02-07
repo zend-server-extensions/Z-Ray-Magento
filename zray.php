@@ -68,7 +68,6 @@ class Magento {
 	private function getOverview(){
 		$_website = Mage::app()->getWebsite();
 		$_store = Mage::app()->getStore();
-		$_frontController = Mage::app()->getFrontController();
         $cacheMethod = explode('_',get_class(Mage::app()->getCache()->getBackend()));
         $cacheMethod = end($cacheMethod);
         $controllerClassReflection = new ReflectionClass(get_class(Mage::app()->getFrontController()->getAction()));
