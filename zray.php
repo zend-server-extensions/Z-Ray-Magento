@@ -70,7 +70,8 @@ class Magento {
 		$_store = Mage::app()->getStore();
         $cacheMethod = explode('_',get_class(Mage::app()->getCache()->getBackend()));
         $cacheMethod = end($cacheMethod);
-		
+        $controllerClassReflection = new ReflectionClass(get_class(Mage::app()->getFrontController()->getAction()));
+        
 		$overview = array(
 	            'Website ID'      => (method_exists($_website,'getId')) ? $_website->getId() : '',
 	            'Website Name'    => (method_exists($_website,'getName')) ? $_website->getName() : '',
@@ -79,7 +80,22 @@ class Magento {
 	            'Store View Id'   => (method_exists($_store,'getId')) ? $_store->getId() : '',
 	            'Store View Code' => (method_exists($_store,'getCode')) ? $_store->getCode() : '',
 	            'Store View Name' => (method_exists($_store,'getName')) ? $_store->getName() : '',
-	            'Cache Method'    => $cacheMethod
+	            'Cache Backend'    => $cacheMethod,
+				'Version'              => Mage::getVersion(),
+				'Edition'              => Mage::helper('core')->isModuleEnabled('Enterprise_Enterprise') ? 'enterprise' : 'community',
+				'Controller Class Name' => get_class(Mage::app()->getFrontController()->getAction()),
+				'Controller Class Path' => str_replace(Mage::getBaseDir(),'',str_replace("'",'',$controllerClassReflection->getFileName())),
+				'Module Name'           => Mage::app()->getRequest()->getRouteName(),
+				'Controller Name'       => Mage::app()->getRequest()->getControllerName(),
+				'Action Name'           => Mage::app()->getRequest()->getActionName(),
+				'Path Info'				=> Mage::app()->getRequest()->getPathInfo(),
+				'Theme Package'         => Mage::getDesign()->getPackageName(),
+				'Default Theme'         => Mage::getDesign()->getTheme(''),
+				'Template Path'         => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getTemplateFilename('')),
+				'Layout Path'           => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getLayoutFilename('')),
+				'Translation Path'      => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getLocaleBaseDir(array())),
+				'Skin Path'             => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getSkinBaseDir(array()))			
+				
 	        );
 		$arr = array();
 		foreach($overview as $k => $v){
@@ -87,6 +103,7 @@ class Magento {
 		}
 		return $arr;
 	}
+
 	
 	/**
 	 * @param array $context
