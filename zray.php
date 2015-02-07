@@ -84,7 +84,7 @@ class Magento {
 				'Version'              => Mage::getVersion(),
 				'Edition'              => Mage::helper('core')->isModuleEnabled('Enterprise_Enterprise') ? 'enterprise' : 'community',
 				'Controller Class Name' => get_class(Mage::app()->getFrontController()->getAction()),
-				'Controller Class Path' => str_replace("'",'',$controllerClassReflection->getFileName()),
+				'Controller Class Path' => str_replace(Mage::getBaseDir(),'',str_replace("'",'',$controllerClassReflection->getFileName())),
 				'Module Name'           => Mage::app()->getRequest()->getRouteName(),
 				'Controller Name'       => Mage::app()->getRequest()->getControllerName(),
 				'Action Name'           => Mage::app()->getRequest()->getActionName(),
