@@ -1,7 +1,7 @@
 <?php
 /*********************************
 	Magento Z-Ray Extension
-	Version: 1.02
+	Version: 1.00
 **********************************/
 class Magento {
 	
@@ -62,12 +62,17 @@ class Magento {
 		
 		//Overview
 		$storage['overview'] = $this->getOverview();
+		
+		//Layout
+		$storage['layouts'] = $this->getLayoutview();
+
 	}
 	
 	
 	private function getOverview(){
 		$_website = Mage::app()->getWebsite();
 		$_store = Mage::app()->getStore();
+		$_frontController = Mage::app()->getFrontController();
         $cacheMethod = explode('_',get_class(Mage::app()->getCache()->getBackend()));
         $cacheMethod = end($cacheMethod);
         $controllerClassReflection = new ReflectionClass(get_class(Mage::app()->getFrontController()->getAction()));
@@ -88,9 +93,9 @@ class Magento {
 				'Module Name'           => Mage::app()->getRequest()->getRouteName(),
 				'Controller Name'       => Mage::app()->getRequest()->getControllerName(),
 				'Action Name'           => Mage::app()->getRequest()->getActionName(),
-				'Path Info'		=> Mage::app()->getRequest()->getPathInfo(),
-				'Current Package'       => Mage::getDesign()->getPackageName(),
-				'Current Theme'         => Mage::getDesign()->getTheme(''),
+				'Path Info'				=> Mage::app()->getRequest()->getPathInfo(),
+				'Theme Package'         => Mage::getDesign()->getPackageName(),
+				'Default Theme'         => Mage::getDesign()->getTheme(''),
 				'Template Path'         => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getTemplateFilename('')),
 				'Layout Path'           => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getLayoutFilename('')),
 				'Translation Path'      => str_replace(Mage::getBaseDir(),'',Mage::getDesign()->getLocaleBaseDir(array())),
@@ -104,6 +109,21 @@ class Magento {
 		return $arr;
 	}
 
+	private function getLayoutview(){
+		require_once 'layoutViewer.php';
+		$Layoutviewer = new Magento_Layoutviewer();
+		
+		$layoutview = array(
+				'Page'      => $Layoutviewer->getPageLayout(),
+				'Package'    => $Layoutviewer->getPackageLayout(),
+				'Layout Files'    => $Layoutviewer->getLayoutFiles(),
+		);
+		$arr = array();
+		foreach($layoutview as $k => $v){
+			$arr[]=array('Layout Type'=>$k,'Contents'=>$v);
+		}
+		return $arr;
+	}	
 	
 	/**
 	 * @param array $context
@@ -111,12 +131,9 @@ class Magento {
 	public function mageDispatchEvent($context) {
 		/// collect event targets for events collector
 		$event = $context['functionArgs'][0];
-		$args = isset($context['functionArgs'][1]) ? $context['functionArgs'][1] : array();
-		$intersection = array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args));
-		$key = array_shift($intersection);
-		if(isset($args[$key])){
-			$this->eventTargets[$event] = $args[$key];
-		}
+		$args = $context['functionArgs'][1];
+		$key = array_shift(array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args)));
+		$this->eventTargets[$event] = $args[$key];
 	}
 	
 	/**
@@ -132,14 +149,8 @@ class Magento {
 		$object = get_class($context['functionArgs'][0]);
 
 		//Events
-		if(isset($this->eventTargets[$event])){
-			$storage['events'][] = array('event' => $event,
-										'class' => $object,
-										'method' => $method,
-										'duration' => $context['durationInclusive'], 
-										'target' => get_class($this->eventTargets[$event])
-										);
-		}
+		$storage['events'][] = array('event' => $event, 'class' => $object, 'method' => $method,
+				'duration' => $context['durationInclusive'], 'target' => get_class($this->eventTargets[$event]));
 	}
 	
 	/**
