@@ -29,6 +29,7 @@ class Magento {
 	 */
 	public function mageAppExit($context, &$storage){
         $this->requests = (array)Mage::app()->getRequest();
+		
         // Now that we got our requests, we can untrace 'Mage::app' (for performance reasons)
         $this->getZRay()->untraceFunction("Mage::app");
 	}
@@ -38,6 +39,8 @@ class Magento {
 	 * @param array $storage
 	 */
 	public function mageRunExit($context, &$storage){
+		$storage['modules'] = array();
+		$this->storeModules($storage['modules']);
 		
 		//Observers / Events
 		$storage['observers'] = array();
@@ -139,6 +142,21 @@ class Magento {
 										'duration' => $context['durationInclusive'], 
 										'target' => get_class($this->eventTargets[$event])
 										);
+		}
+	}
+	
+	/**
+	 * @param array $storage
+	 */
+	private function storeModules(& $storage) {
+		$modules = Mage::getConfig()->getNode('modules')->children();
+		foreach($modules as $moduleName => $module){
+			$storage[] = array(
+				'Name'=>$moduleName,
+				'Active'=>(bool)$module->active,
+				'Code Pool'=>(string)$module->codePool,
+				'Version'=>(string)$module->version,
+			);
 		}
 	}
 	
