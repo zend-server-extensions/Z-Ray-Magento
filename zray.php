@@ -112,15 +112,17 @@ class Magento {
 	 * @param array $context
 	 */
 	public function mageDispatchEvent($context) {
-		/// collect event targets for events collector
-		$event = $context['functionArgs'][0];
-		$args = isset($context['functionArgs'][1]) ? $context['functionArgs'][1] : array();
-		$intersection = array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'), array_keys($args));
-		$key = array_shift($intersection);
-		if(isset($args[$key])){
-			$this->eventTargets[$event] = $args[$key];
-		}
-	}
+        	/// collect event targets for events collector
+                $event = $context['functionArgs'][0];
+                if (isset($context['functionArgs'][1])) {
+                        $args = $context['functionArgs'][1];
+                        $array = array_intersect(array('object', 'resource', 'collection', 'front', 'controller_action'),array_keys($args));
+                        $key = array_shift($array);
+                        if (isset($args[$key])) {
+                                $this->eventTargets[$event] = $args[$key];
+                        }
+        	}
+        }
 	
 	/**
 	 * @param array $context
